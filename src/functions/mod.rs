@@ -29,6 +29,18 @@ where
     grad
 }
 
+pub fn gradient_descent<F>(f: F, xs: &mut [f64], learning_rate: f64, step_num: usize)
+where
+    F: Fn(&[f64]) -> f64,
+{
+    for _ in 0..step_num {
+        let grads = numerical_gradient(&f, xs);
+        for (x, grad) in xs.iter_mut().zip(grads.into_iter()) {
+            *x -= learning_rate * grad;
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -51,6 +63,20 @@ mod tests {
         assert_eq!(
             numerical_gradient(function_2, &[3.0, 4.0]),
             [6.00000000000378, 7.999999999999119]
+        );
+    }
+
+    #[test]
+    fn gradient_descent_works() {
+        fn function_2(xs: &[f64]) -> f64 {
+            xs[0].powi(2) + xs[1].powi(2)
+        }
+
+        let mut xs = [-3.0, 4.0];
+        gradient_descent(function_2, &mut xs, 0.1, 100);
+        assert_eq!(
+            xs,
+            [-0.0000000006111107928998789, 0.0000000008148143905314271]
         );
     }
 }
