@@ -89,6 +89,10 @@ where
         self.0.get(0).map_or(0, |x| x.len())
     }
 
+    pub fn shape(&self) -> (usize, usize) {
+        (self.rows(), self.columns())
+    }
+
     pub fn row(&self, i: usize) -> impl Iterator<Item = &T> {
         // FIXME: Make this safe
         self.0[i].iter()

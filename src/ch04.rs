@@ -99,3 +99,17 @@ pub struct Gradients {
     pub w2: Matrix,
     pub b2: Matrix,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn two_layer_net_works() {
+        let net = TwoLayerNet::new(784, 100, 10, &Default::default());
+        assert_eq!(net.w1.shape(), (784, 100));
+        assert_eq!(net.b1.shape(), (1, 100));
+        assert_eq!(net.w2.shape(), (100, 10));
+        assert_eq!(net.b2.shape(), (1, 10));
+    }
+}
