@@ -52,6 +52,15 @@ impl TwoLayerNet {
         cross_entropy_error(&ys, labels)
     }
 
+    pub fn batched_loss(&self, batched_data: &[&[f64]], batched_labels: &[&[f64]]) -> f64 {
+        batched_data
+            .iter()
+            .zip(batched_labels.iter())
+            .map(|(data, labels)| self.loss(data, labels))
+            .sum::<f64>()
+            / (batched_data.len() as f64)
+    }
+
     pub fn accuracy(&self, data: &[f64], labels: &[f64]) -> f64 {
         let ys = self.predict(data);
         let y = argmax(&ys);
@@ -85,6 +94,38 @@ impl TwoLayerNet {
         let b2 = self.w2.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.b2, m.clone());
             let loss = self.loss(data, labels);
+            self.b2 = old;
+            loss
+        });
+        Gradients { w1, b1, w2, b2 }
+    }
+
+    pub fn batched_numerical_gradient(
+        mut self,
+        batched_data: &[&[f64]],
+        batched_labels: &[&[f64]],
+    ) -> Gradients {
+        let w1 = self.w1.clone().numerical_gradient(|m| {
+            let old = mem::replace(&mut self.w1, m.clone());
+            let loss = self.batched_loss(batched_data, batched_labels);
+            self.w1 = old;
+            loss
+        });
+        let b1 = self.w1.clone().numerical_gradient(|m| {
+            let old = mem::replace(&mut self.b1, m.clone());
+            let loss = self.batched_loss(batched_data, batched_labels);
+            self.b1 = old;
+            loss
+        });
+        let w2 = self.w2.clone().numerical_gradient(|m| {
+            let old = mem::replace(&mut self.w2, m.clone());
+            let loss = self.batched_loss(batched_data, batched_labels);
+            self.w2 = old;
+            loss
+        });
+        let b2 = self.w2.clone().numerical_gradient(|m| {
+            let old = mem::replace(&mut self.b2, m.clone());
+            let loss = self.batched_loss(batched_data, batched_labels);
             self.b2 = old;
             loss
         });
