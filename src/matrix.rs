@@ -1,3 +1,6 @@
+use rand::distributions::StandardNormal;
+use rand::rngs::StdRng;
+use rand::{FromEntropy, Rng};
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, Mul, Sub};
 
@@ -11,6 +14,40 @@ where
 {
     pub fn new(rows: usize, columns: usize) -> Self {
         Matrix((0..rows).map(|_| vec![T::default(); columns]).collect())
+    }
+}
+impl Matrix<f64> {
+    pub fn with_randn(rows: usize, columns: usize) -> Self {
+        let mut m = Self::new(rows, columns);
+        let mut rng = StdRng::from_entropy();
+        for row in m.0.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell = rng.sample(&StandardNormal);
+            }
+        }
+        m
+    }
+
+    pub fn numerical_gradient<F>(&mut self, mut f: F) -> Matrix<f64>
+    where
+        F: FnMut(&Self) -> f64,
+    {
+        let h = 1e-4;
+        let mut grad = Matrix::new(self.rows(), self.columns());
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                let temp = self.0[y][x];
+                self.0[y][x] = temp + h;
+                let fxh1 = f(self);
+
+                self.0[y][x] = temp - h;
+                let fxh2 = f(self);
+
+                grad.0[y][x] = (fxh1 - fxh2) / (2.0 * h);
+                self.0[y][x] = temp;
+            }
+        }
+        grad
     }
 }
 impl<T> Matrix<T>
@@ -66,6 +103,11 @@ where
         self.0
     }
 
+    pub fn into_vector(mut self) -> Vec<T> {
+        assert_eq!(self.rows(), 1);
+        self.0.swap_remove(0)
+    }
+
     pub fn map<F>(mut self, f: F) -> Self
     where
         F: Fn(&T) -> T,
@@ -78,6 +120,14 @@ where
         }
         self
     }
+
+    pub fn map_row<F>(self, f: F) -> Self
+    where
+        F: Fn(&[T]) -> Vec<T>,
+    {
+        let m = self.0.into_iter().map(|row| f(&row)).collect();
+        Matrix(m)
+    }
 }
 impl<T> From<Vec<Vec<T>>> for Matrix<T> {
     fn from(f: Vec<Vec<T>>) -> Self {
@@ -87,6 +137,17 @@ impl<T> From<Vec<Vec<T>>> for Matrix<T> {
             assert_eq!(row.len(), columns);
         }
         Matrix(f)
+    }
+}
+impl Mul<f64> for Matrix<f64> {
+    type Output = Self;
+    fn mul(mut self, rhs: f64) -> Self {
+        for row in self.0.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell *= rhs;
+            }
+        }
+        self
     }
 }
 

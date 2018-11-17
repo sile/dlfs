@@ -1,6 +1,19 @@
 pub mod activation;
 pub mod loss;
 
+pub fn argmax(xs: &[f64]) -> usize {
+    assert_ne!(xs.len(), 0);
+    let mut max_value = xs[0];
+    let mut max_index = 0;
+    for i in 1..xs.len() {
+        if max_value < xs[i] {
+            max_value = xs[i];
+            max_index = i;
+        }
+    }
+    max_index
+}
+
 pub fn numerical_diff<F>(f: F, x: f64) -> f64
 where
     F: Fn(f64) -> f64,
