@@ -40,10 +40,19 @@ impl Mnist {
         &self.y_train[index * 10..][..10]
     }
 
-    pub fn train_batch(&self, batch_size: usize) -> impl Iterator<Item = &[f64]> {
+    pub fn choice_train_batch(&self, batch_size: usize) -> impl Iterator<Item = MnistEntry> {
         (0..batch_size).map(move |_| {
             let i = rand::random::<usize>() % self.train_image_count();
-            self.train_image(i)
+            MnistEntry {
+                image: self.train_image(i),
+                label: self.train_label(i),
+            }
         })
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct MnistEntry<'a> {
+    pub image: &'a [f64],
+    pub label: &'a [f64],
 }

@@ -2,7 +2,7 @@ use rand::distributions::StandardNormal;
 use rand::rngs::StdRng;
 use rand::{FromEntropy, Rng};
 use std::iter::Sum;
-use std::ops::{Add, AddAssign, Div, Mul, Sub};
+use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
 // FIXME: optimize inner representation
 //        (e.g., `{ inner: Vec<T>, rows: usize, cols: usize }`)
@@ -71,8 +71,20 @@ where
     }
 
     pub fn add(mut self, other: &Self) -> Self {
-        assert_eq!(self.rows(), other.rows());
-        assert_eq!(self.columns(), other.columns());
+        assert_eq!(
+            self.rows(),
+            other.rows(),
+            "self={:?}, rhs={:?}",
+            self.shape(),
+            other.shape()
+        );
+        assert_eq!(
+            self.columns(),
+            other.columns(),
+            "self={:?}, rhs={:?}",
+            self.shape(),
+            other.shape()
+        );
         for y in 0..self.rows() {
             for x in 0..self.columns() {
                 self.0[y][x] += other.0[y][x].clone();
@@ -152,6 +164,17 @@ impl Mul<f64> for Matrix<f64> {
             }
         }
         self
+    }
+}
+impl SubAssign for Matrix<f64> {
+    fn sub_assign(&mut self, rhs: Self) {
+        assert_eq!(self.rows(), rhs.rows());
+        assert_eq!(self.columns(), rhs.columns());
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] -= rhs.0[y][x];
+            }
+        }
     }
 }
 

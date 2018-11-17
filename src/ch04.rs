@@ -1,6 +1,6 @@
-use mnist::Mnist;
 use std::mem;
 
+use data::{Mnist, MnistEntry};
 use functions::activation::{sigmoid, softmax};
 use functions::argmax;
 use functions::loss::cross_entropy_error;
@@ -53,15 +53,15 @@ impl TwoLayerNet {
         cross_entropy_error(&ys, labels)
     }
 
-    pub fn batched_loss<'a, I, J>(&self, batched_data: I, batched_labels: J) -> f64
+    pub fn batched_loss<'a, I>(&self, batch: I) -> f64
     where
-        I: Iterator<Item = &'a [f64]>,
-        J: Iterator<Item = &'a [f64]>,
+        I: Iterator<Item = MnistEntry<'a>>,
     {
         let mut sum = 0.0;
         let mut len = 0;
-        for (data, labels) in batched_data.zip(batched_labels) {
-            sum += self.loss(data, labels);
+        for x in batch {
+            let loss = self.loss(x.image, x.label);
+            sum += loss;
             len += 1;
         }
         sum / (len as f64)
@@ -106,43 +106,63 @@ impl TwoLayerNet {
         Gradients { w1, b1, w2, b2 }
     }
 
-    pub fn batched_numerical_gradient<'a, I, J>(
-        mut self,
-        batched_data: &'a I,
-        batched_labels: &'a J,
-    ) -> Gradients
+    pub fn batched_numerical_gradient<'a, I>(&mut self, batch: &'a I) -> Gradients
     where
-        I: Iterator<Item = &'a [f64]> + Clone,
-        J: Iterator<Item = &'a [f64]> + Clone,
+        I: Iterator<Item = MnistEntry<'a>> + Clone,
     {
         let w1 = self.w1.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.w1, m.clone());
-            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
+            let loss = self.batched_loss(batch.clone());
             self.w1 = old;
             loss
         });
-        let b1 = self.w1.clone().numerical_gradient(|m| {
+        let b1 = self.b1.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.b1, m.clone());
-            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
+            let loss = self.batched_loss(batch.clone());
             self.b1 = old;
             loss
         });
         let w2 = self.w2.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.w2, m.clone());
-            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
+            let loss = self.batched_loss(batch.clone());
             self.w2 = old;
             loss
         });
-        let b2 = self.w2.clone().numerical_gradient(|m| {
+        let b2 = self.b2.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.b2, m.clone());
-            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
+            let loss = self.batched_loss(batch.clone());
             self.b2 = old;
             loss
         });
         Gradients { w1, b1, w2, b2 }
     }
 
-    pub fn train(&self, mnist: &Mnist) {}
+    pub fn train(
+        &mut self,
+        mnist: &Mnist,
+        iters_num: usize,
+        batch_size: usize,
+        learning_rate: f64,
+    ) {
+        println!("# START: TRAIN");
+        for i in 0..iters_num {
+            let batch = mnist.choice_train_batch(batch_size).collect::<Vec<_>>();
+            let grad = self.batched_numerical_gradient(&batch.iter().cloned());
+            self.w1 -= grad.w1 * learning_rate;
+            self.b1 -= grad.b1 * learning_rate;
+            self.w2 -= grad.w2 * learning_rate;
+            self.b2 -= grad.b2 * learning_rate;
+
+            let loss = self.batched_loss(batch.into_iter());
+            println!("[{}/{}]: LOSS={}", i + 1, iters_num, loss,);
+        }
+        println!(" END: TRAIN");
+    }
+}
+impl Default for TwoLayerNet {
+    fn default() -> Self {
+        TwoLayerNet::new(784, 50, 10, &Default::default())
+    }
 }
 
 #[derive(Debug)]

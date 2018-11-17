@@ -2,7 +2,11 @@
 name = "dlfs"
 version = "0.1.0"
 authors = ["Takeru Ohta <phjgt308@gmail.com>"]
+publish = false
 
 [dependencies]
 mnist = "0.4"
 rand = "0.6"
+
+[dev-dependencies]
+structopt = "0.2"
