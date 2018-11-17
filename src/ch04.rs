@@ -1,3 +1,4 @@
+use mnist::Mnist;
 use std::mem;
 
 use functions::activation::{sigmoid, softmax};
@@ -52,13 +53,18 @@ impl TwoLayerNet {
         cross_entropy_error(&ys, labels)
     }
 
-    pub fn batched_loss(&self, batched_data: &[&[f64]], batched_labels: &[&[f64]]) -> f64 {
-        batched_data
-            .iter()
-            .zip(batched_labels.iter())
-            .map(|(data, labels)| self.loss(data, labels))
-            .sum::<f64>()
-            / (batched_data.len() as f64)
+    pub fn batched_loss<'a, I, J>(&self, batched_data: I, batched_labels: J) -> f64
+    where
+        I: Iterator<Item = &'a [f64]>,
+        J: Iterator<Item = &'a [f64]>,
+    {
+        let mut sum = 0.0;
+        let mut len = 0;
+        for (data, labels) in batched_data.zip(batched_labels) {
+            sum += self.loss(data, labels);
+            len += 1;
+        }
+        sum / (len as f64)
     }
 
     pub fn accuracy(&self, data: &[f64], labels: &[f64]) -> f64 {
@@ -100,37 +106,43 @@ impl TwoLayerNet {
         Gradients { w1, b1, w2, b2 }
     }
 
-    pub fn batched_numerical_gradient(
+    pub fn batched_numerical_gradient<'a, I, J>(
         mut self,
-        batched_data: &[&[f64]],
-        batched_labels: &[&[f64]],
-    ) -> Gradients {
+        batched_data: &'a I,
+        batched_labels: &'a J,
+    ) -> Gradients
+    where
+        I: Iterator<Item = &'a [f64]> + Clone,
+        J: Iterator<Item = &'a [f64]> + Clone,
+    {
         let w1 = self.w1.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.w1, m.clone());
-            let loss = self.batched_loss(batched_data, batched_labels);
+            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
             self.w1 = old;
             loss
         });
         let b1 = self.w1.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.b1, m.clone());
-            let loss = self.batched_loss(batched_data, batched_labels);
+            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
             self.b1 = old;
             loss
         });
         let w2 = self.w2.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.w2, m.clone());
-            let loss = self.batched_loss(batched_data, batched_labels);
+            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
             self.w2 = old;
             loss
         });
         let b2 = self.w2.clone().numerical_gradient(|m| {
             let old = mem::replace(&mut self.b2, m.clone());
-            let loss = self.batched_loss(batched_data, batched_labels);
+            let loss = self.batched_loss(batched_data.clone(), batched_labels.clone());
             self.b2 = old;
             loss
         });
         Gradients { w1, b1, w2, b2 }
     }
+
+    pub fn train(&self, mnist: &Mnist) {}
 }
 
 #[derive(Debug)]
