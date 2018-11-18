@@ -2,6 +2,8 @@ use mnist;
 use rand;
 use std::path::Path;
 
+use matrix::Matrix;
+
 const IMAGE_SIZE: usize = 28 * 28;
 
 #[derive(Debug)]
@@ -48,6 +50,16 @@ impl Mnist {
                 label: self.train_label(i),
             }
         })
+    }
+
+    pub fn choice_train_batch2(&self, batch_size: usize) -> (Matrix, Matrix) {
+        let mut x_batch = Vec::new();
+        let mut y_batch = Vec::new();
+        for t in self.choice_train_batch(batch_size) {
+            x_batch.push(Vec::from(t.image));
+            y_batch.push(Vec::from(t.label));
+        }
+        (Matrix::from(x_batch), Matrix::from(y_batch))
     }
 }
 

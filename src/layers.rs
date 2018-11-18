@@ -4,11 +4,45 @@ use matrix::Matrix;
 
 #[derive(Debug)]
 pub struct ReluLayer {
-    mask: Vec<bool>,
+    rows: Vec<ReluLayerInner>,
 }
 impl ReluLayer {
     pub fn new() -> Self {
-        ReluLayer { mask: Vec::new() }
+        ReluLayer { rows: Vec::new() }
+    }
+
+    pub fn forward(&mut self, xs: Matrix) -> Matrix {
+        let mut out = Vec::new();
+
+        self.rows.clear();
+        for i in 0..xs.rows() {
+            let mut relu = ReluLayerInner::new();
+            out.push(relu.forward(xs.row(i).cloned()).collect::<Vec<_>>());
+            self.rows.push(relu);
+        }
+        Matrix::from(out)
+    }
+
+    pub fn backward(&mut self, dout: Matrix) -> Matrix {
+        let mut dx = Vec::new();
+        for y in 0..dout.rows() {
+            dx.push(
+                self.rows[y]
+                    .backward(dout.row(y).cloned())
+                    .collect::<Vec<_>>(),
+            );
+        }
+        Matrix::from(dx)
+    }
+}
+
+#[derive(Debug)]
+struct ReluLayerInner {
+    mask: Vec<bool>,
+}
+impl ReluLayerInner {
+    pub fn new() -> Self {
+        ReluLayerInner { mask: Vec::new() }
     }
 
     pub fn forward<'a, I>(&'a mut self, xs: I) -> impl 'a + Iterator<Item = f64>
@@ -72,11 +106,11 @@ impl SigmoidLayer {
 
 #[derive(Debug)]
 pub struct AffineLayer {
-    w: Matrix,
-    b: Matrix,
+    pub w: Matrix,
+    pub b: Matrix,
     x: Matrix,
-    dw: Matrix,
-    db: Matrix,
+    pub dw: Matrix,
+    pub db: Matrix,
 }
 impl AffineLayer {
     pub fn new(w: Matrix, b: Matrix) -> Self {
@@ -91,7 +125,7 @@ impl AffineLayer {
 
     pub fn forward(&mut self, x: Matrix) -> Matrix {
         self.x = x.clone();
-        x.dot_product(&self.w).add(&self.b)
+        x.dot_product(&self.w).add_vector(&self.b)
     }
 
     pub fn backward(&mut self, dout: Matrix) -> Matrix {

@@ -120,6 +120,23 @@ where
         self
     }
 
+    pub fn add_vector(mut self, other: &Self) -> Self {
+        assert_eq!(other.rows(), 1);
+        assert_eq!(
+            self.columns(),
+            other.columns(),
+            "self={:?}, rhs={:?}",
+            self.shape(),
+            other.shape()
+        );
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] += other.0[0][x].clone();
+            }
+        }
+        self
+    }
+
     pub fn sub(mut self, other: &Self) -> Self {
         assert_eq!(
             self.rows(),
