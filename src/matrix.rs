@@ -70,7 +70,16 @@ impl Matrix<f64> {
 }
 impl<T> Matrix<T>
 where
-    T: Default + Clone + Mul<Output = T> + Add + AddAssign + Sub + Div + Sum + std::fmt::Debug,
+    T: Default
+        + Clone
+        + Mul<Output = T>
+        + Add
+        + AddAssign
+        + Sub
+        + SubAssign
+        + Div
+        + Sum
+        + std::fmt::Debug,
 {
     pub fn dot_product(&self, other: &Self) -> Self {
         assert_eq!(self.columns(), other.rows());
@@ -111,6 +120,29 @@ where
         self
     }
 
+    pub fn sub(mut self, other: &Self) -> Self {
+        assert_eq!(
+            self.rows(),
+            other.rows(),
+            "self={:?}, rhs={:?}",
+            self.shape(),
+            other.shape()
+        );
+        assert_eq!(
+            self.columns(),
+            other.columns(),
+            "self={:?}, rhs={:?}",
+            self.shape(),
+            other.shape()
+        );
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] -= other.0[y][x].clone();
+            }
+        }
+        self
+    }
+
     pub fn rows(&self) -> usize {
         self.0.len()
     }
@@ -126,6 +158,11 @@ where
     pub fn row(&self, i: usize) -> impl Iterator<Item = &T> {
         // FIXME: Make this safe
         self.0[i].iter()
+    }
+
+    pub fn row_slice(&self, i: usize) -> &[T] {
+        // FIXME: Make this safe
+        &self.0[i]
     }
 
     pub fn column(&self, i: usize) -> impl Iterator<Item = &T> {
@@ -179,6 +216,17 @@ impl Mul<f64> for Matrix<f64> {
         for row in self.0.iter_mut() {
             for cell in row.iter_mut() {
                 *cell *= rhs;
+            }
+        }
+        self
+    }
+}
+impl Div<f64> for Matrix<f64> {
+    type Output = Self;
+    fn div(mut self, rhs: f64) -> Self {
+        for row in self.0.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell /= rhs;
             }
         }
         self

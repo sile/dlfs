@@ -1,4 +1,5 @@
-use functions::activation::sigmoid;
+use functions::activation::{sigmoid, softmax};
+use functions::loss::cross_entropy_error;
 use matrix::Matrix;
 
 #[derive(Debug)]
@@ -97,6 +98,40 @@ impl AffineLayer {
         let dx = dout.dot_product(&self.w.transpose());
         self.dw = self.x.transpose().dot_product(&dout);
         self.db = dout.column_sum();
+        dx
+    }
+}
+
+#[derive(Debug)]
+pub struct SoftmaxWithLossLayer {
+    y: Matrix, // softmaxの出力
+    t: Matrix, // 教師データ (one-hot vector)
+}
+impl SoftmaxWithLossLayer {
+    pub fn new() -> Self {
+        SoftmaxWithLossLayer {
+            y: Matrix::new(0, 0),
+            t: Matrix::new(0, 0),
+        }
+    }
+
+    pub fn forward(&mut self, x: Matrix, t: Matrix) -> Vec<f64> {
+        self.t = t.clone();
+        self.y = x.clone().map_row(softmax);
+
+        let mut loss = Vec::new();
+        assert_eq!(self.y.rows(), t.rows());
+        for i in 0..self.y.rows() {
+            loss.push(cross_entropy_error(self.y.row_slice(i), t.row_slice(i)));
+        }
+        loss
+    }
+
+    pub fn backword(&mut self) -> Matrix {
+        let batch_size = self.t.rows();
+
+        // NOTE: `AffineLayer`でバッチサイズ分の合算が行われるので、ここであらかじめ`batch_size`で割って単位を合わせておく
+        let dx = self.y.clone().sub(&self.t) / (batch_size as f64);
         dx
     }
 }
