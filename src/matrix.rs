@@ -28,6 +28,24 @@ impl Matrix<f64> {
         m
     }
 
+    pub fn column_sum(&self) -> Matrix {
+        let mut m = Matrix::new(1, self.columns());
+        for i in 0..self.columns() {
+            m.0[0][i] = self.column(i).sum();
+        }
+        m
+    }
+
+    pub fn transpose(&self) -> Matrix {
+        let mut m = Matrix::new(self.columns(), self.rows());
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                m.0[x][y] = self.0[y][x];
+            }
+        }
+        m
+    }
+
     pub fn numerical_gradient<F>(&mut self, mut f: F) -> Matrix<f64>
     where
         F: FnMut(&Self) -> f64,

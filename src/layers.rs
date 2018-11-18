@@ -1,4 +1,5 @@
 use functions::activation::sigmoid;
+use matrix::Matrix;
 
 #[derive(Debug)]
 pub struct ReluLayer {
@@ -65,5 +66,37 @@ impl SigmoidLayer {
             .iter()
             .zip(dout)
             .map(|(dout, y)| dout * (1.0 - y) * y)
+    }
+}
+
+#[derive(Debug)]
+pub struct AffineLayer {
+    w: Matrix,
+    b: Matrix,
+    x: Matrix,
+    dw: Matrix,
+    db: Matrix,
+}
+impl AffineLayer {
+    pub fn new(w: Matrix, b: Matrix) -> Self {
+        AffineLayer {
+            w,
+            b,
+            x: Matrix::new(0, 0),
+            dw: Matrix::new(0, 0),
+            db: Matrix::new(0, 0),
+        }
+    }
+
+    pub fn forward(&mut self, x: Matrix) -> Matrix {
+        self.x = x.clone();
+        x.dot_product(&self.w).add(&self.b)
+    }
+
+    pub fn backward(&mut self, dout: Matrix) -> Matrix {
+        let dx = dout.dot_product(&self.w.transpose());
+        self.dw = self.x.transpose().dot_product(&dout);
+        self.db = dout.column_sum();
+        dx
     }
 }
