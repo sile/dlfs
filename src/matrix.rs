@@ -217,6 +217,17 @@ where
         Matrix(m)
     }
 }
+impl Matrix {
+    pub fn sqrt(&self) -> Matrix {
+        let mut m = self.clone();
+        for row in m.0.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell = cell.sqrt();
+            }
+        }
+        m
+    }
+}
 impl<T> From<Vec<Vec<T>>> for Matrix<T> {
     fn from(f: Vec<Vec<T>>) -> Self {
         let columns = f.get(0).map_or(0, |x| x.len());
@@ -238,12 +249,45 @@ impl Mul<f64> for Matrix<f64> {
         self
     }
 }
+impl Mul<Matrix> for Matrix {
+    type Output = Self;
+    fn mul(mut self, rhs: Matrix) -> Self {
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] *= rhs.0[y][x];
+            }
+        }
+        self
+    }
+}
 impl Div<f64> for Matrix<f64> {
     type Output = Self;
     fn div(mut self, rhs: f64) -> Self {
         for row in self.0.iter_mut() {
             for cell in row.iter_mut() {
                 *cell /= rhs;
+            }
+        }
+        self
+    }
+}
+impl Div<Matrix> for Matrix {
+    type Output = Self;
+    fn div(mut self, rhs: Matrix) -> Self {
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] /= rhs.0[y][x];
+            }
+        }
+        self
+    }
+}
+impl Add<f64> for Matrix<f64> {
+    type Output = Self;
+    fn add(mut self, rhs: f64) -> Self {
+        for row in self.0.iter_mut() {
+            for cell in row.iter_mut() {
+                *cell += rhs;
             }
         }
         self
@@ -256,6 +300,17 @@ impl SubAssign for Matrix<f64> {
         for y in 0..self.rows() {
             for x in 0..self.columns() {
                 self.0[y][x] -= rhs.0[y][x];
+            }
+        }
+    }
+}
+impl AddAssign for Matrix<f64> {
+    fn add_assign(&mut self, rhs: Self) {
+        assert_eq!(self.rows(), rhs.rows());
+        assert_eq!(self.columns(), rhs.columns());
+        for y in 0..self.rows() {
+            for x in 0..self.columns() {
+                self.0[y][x] += rhs.0[y][x];
             }
         }
     }
