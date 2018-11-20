@@ -100,7 +100,7 @@ impl SigmoidLayer {
         self.out
             .iter()
             .zip(dout)
-            .map(|(dout, y)| dout * (1.0 - y) * y)
+            .map(|(y, dout)| dout * (1.0 - y) * y)
     }
 }
 
