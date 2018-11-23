@@ -4,6 +4,8 @@ use rand::{FromEntropy, Rng};
 use std::iter::Sum;
 use std::ops::{Add, AddAssign, Div, Mul, Sub, SubAssign};
 
+use image::Image;
+
 // FIXME: optimize inner representation
 //        (e.g., `{ inner: Vec<T>, rows: usize, cols: usize }`)
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -26,6 +28,61 @@ impl Matrix<f64> {
             }
         }
         m
+    }
+
+    // a.k.a., img2col
+    //
+    // image: (batch_size, channel, height, width)
+    pub fn from_images<I>(
+        images: I,
+        filter_h: usize,
+        filter_w: usize,
+        stride: usize,
+        pad: usize,
+    ) -> Self
+    where
+        I: Iterator<Item = Image>,
+    {
+        let filter_h = filter_h as isize;
+        let filter_w = filter_w as isize;
+        let pad = pad as isize;
+
+        let mut rows = Vec::new();
+        for image in images {
+            let height = image.height() as isize;
+            let width = image.width() as isize;
+
+            let y_start = -(pad as isize);
+            let y_end = (height + pad) as isize;
+            let x_start = -(pad as isize);
+            let x_end = (width + pad) as isize;
+            for y in y_start..(y_end - filter_h) + 1 {
+                if (y - y_start) % (stride as isize) != 0 {
+                    continue;
+                }
+
+                for x in x_start..(x_end - filter_w) + 1 {
+                    if (x - x_start) % (stride as isize) != 0 {
+                        continue;
+                    }
+
+                    let mut row = Vec::new();
+                    for image_per_channel in &image.0 {
+                        for i in y..y + filter_h {
+                            for j in x..x + filter_w {
+                                if i < 0 || j < 0 || i >= height || j >= width {
+                                    row.push(0.0);
+                                    continue;
+                                }
+                                row.push(image_per_channel[i as usize][j as usize]);
+                            }
+                        }
+                    }
+                    rows.push(row);
+                }
+            }
+        }
+        Matrix::from(rows)
     }
 
     pub fn column_sum(&self) -> Matrix {
@@ -367,6 +424,18 @@ mod tests {
 
         let x = [1.0, 0.5];
         let y = network.forward(&x);
-        assert_eq!(y, [0.3111600656569811, 0.673942886171143]);
+        assert_eq!(y, [0.3164209556565184, 0.6954092315109959]);
+    }
+
+    #[test]
+    fn im2col() {
+        use std::iter::{once, repeat};
+
+        let image = Image(vec![vec![vec![0.0; 7]; 7]; 3]);
+        let m = Matrix::from_images(once(image.clone()), 5, 5, 1, 0);
+        assert_eq!(m.shape(), (9, 75));
+
+        let m = Matrix::from_images(repeat(image).take(10), 5, 5, 1, 0);
+        assert_eq!(m.shape(), (90, 75));
     }
 }
